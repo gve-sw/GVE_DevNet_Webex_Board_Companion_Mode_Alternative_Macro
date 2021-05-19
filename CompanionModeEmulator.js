@@ -14,8 +14,6 @@ or implied.
 
 import xapi from 'xapi';
 
-const MAX_VOLUME = 0;
-
 function setVolume(vol)
 {
  xapi.Command.Audio.Volume.Set({ Level: vol });
@@ -80,6 +78,16 @@ function limitVolume(volume)
     }
 }
 
+function companionDeviceJoin()
+{
+    xapi.Command.Bookings.List().then(result =>
+      {
+        console.log(result.Booking[0].DialInfo.Calls.Call[0].Number);
+        xapi.Command.Dial({Number: result.Booking[0].DialInfo.Calls.Call[0].Number});
+        }
+    );
+}
+
 async function checkInitialVolume() {
         try {
             const volume = await xapi.Status.Audio.Volume.get();
@@ -90,7 +98,33 @@ async function checkInitialVolume() {
         }
 }
 
+function handleMessage(event) {
+  console.log(`handleMessage: ${event.Text}`);
+
+  switch(event.Text) {
+
+    case "JoinMeeting":
+      companionDeviceJoin();
+      break;
+  }
+}
+
+// ---------------------- ERROR HANDLING
+
+function handleError(error) {
+  console.log(error);
+}
+
+
 function init() {
+    // configure HTTP settings
+    xapi.config.set('HttpClient Mode', 'On').catch(handleError);
+    xapi.config.set('HttpClient AllowInsecureHTTPS:', 'True').catch(handleError);
+    xapi.config.set('HttpClient AllowHTTP:', 'True').catch(handleError);
+
+    // register callback for processing messages from main codec
+    xapi.event.on('Message Send', handleMessage);
+
     listenToCalls();
     xapi.Status.Audio.Volume.on((volume) => {
         console.log('Volume changed to: ${volume}');
