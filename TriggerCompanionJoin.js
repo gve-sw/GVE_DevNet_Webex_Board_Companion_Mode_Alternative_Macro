@@ -32,6 +32,21 @@ function sendCompanionDeviceJoin()
       .then((response) => {if(response.StatusCode === "200") {console.log("Successfully sent: " + payload)}});
 }
 
+function sendCompanionDeviceDisconnect()
+{
+
+    let url = 'https://' + COMPANION_IP + '/putxml';
+    let headers = [
+      'Content-Type: text/xml',
+      'Authorization: Basic ' + COMPANION_USERNAMEPWD_BASE64
+    ];
+
+    let payload = "<XmlDoc internal='True'><Command><Message><Send><Text>"+ "DisconnectMeeting" +"</Text></Send></Message></Command></XmlDoc>";
+
+    xapi.command('HttpClient Post', {Url: url, Header: headers, AllowInsecureHTTPS: 'True'}, payload)
+      .then((response) => {if(response.StatusCode === "200") {console.log("Successfully sent: " + payload)}});
+}
+
 function listenToCalls()
 {
     xapi.Event.CallSuccessful.on(async () => {
@@ -41,6 +56,15 @@ function listenToCalls()
         sendCompanionDeviceJoin();
 
     });
+
+    xapi.Event.CallDisconnect.on(async () => {
+        const call = await xapi.Status.Call.get();
+
+        console.log(call[0].CallbackNumber);
+        sendCompanionDeviceDisconnect();
+
+    });
+
 }
 
 // ---------------------- ERROR HANDLING

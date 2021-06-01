@@ -20,7 +20,8 @@ Macro to simulate companion mode for a Webex board working in conjunction with a
 Load the Javascript code included in the the **CompanionModeEmulator.js** file in this repository into a new Macro in the Macro editor of the Cisco Webex Board you want to simulate Companion mode when working with a Room Kit Plus using CVI Cloud Gateway.  
 
 Optional: Load the Javascript code included in the  **TriggerCompanionJoin.js** file in this repository into a new Macro in the Macro editor of the Cisco Webex Device (i.e. Room Kit Plus using CVI Cloud Gateway). This script 
-will tell the board to join the meeting being offered on the screen with OBTP as soon as a call is connected in this device.  
+will tell the board to join the meeting being offered on the screen with OBTP as soon as a call is connected in this device. It will also tell the board to disconnect from the call 
+when the Room Kit Plus disconnects from the meeting/call. 
 Edit macro code to set COMPANION_IP to a string containing the IP address of the Webex Board and COMPANION_USERNAMEPWD_BASE64 to a string containing  
 the base-64 encoded username and password of a user with integrator or admin roles configured on the board to be able to send it commands.  
 The format is "username:password" for basic Authorization. This needs to be base64-encoded. Use e.g. https://www.base64encode.org/ to do this.  

@@ -13,6 +13,7 @@ or implied.
 */
 
 import xapi from 'xapi';
+const MAX_VOLUME=0;
 
 function setVolume(vol)
 {
@@ -88,6 +89,11 @@ function companionDeviceJoin()
     );
 }
 
+function companionDeviceDisconnect()
+{
+    xapi.Command.Call.Disconnect();
+}
+
 async function checkInitialVolume() {
         try {
             const volume = await xapi.Status.Audio.Volume.get();
@@ -105,6 +111,10 @@ function handleMessage(event) {
 
     case "JoinMeeting":
       companionDeviceJoin();
+      break;
+
+    case "DisconnectMeeting":
+      companionDeviceDisconnect();
       break;
   }
 }
