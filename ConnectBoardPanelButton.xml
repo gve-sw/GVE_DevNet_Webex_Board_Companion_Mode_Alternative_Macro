@@ -1,0 +1,12 @@
+<Extensions>
+  <Version>1.8</Version>
+  <Panel>
+    <Order>5</Order>
+    <PanelId>panel_manual_board_join</PanelId>
+    <Type>InCall</Type>
+    <Icon>Tv</Icon>
+    <Color>#A866FF</Color>
+    <Name>Connect Board</Name>
+    <ActivityType>Custom</ActivityType>
+  </Panel>
+</Extensions>

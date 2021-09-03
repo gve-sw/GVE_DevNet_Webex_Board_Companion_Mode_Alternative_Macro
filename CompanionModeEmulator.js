@@ -14,6 +14,7 @@ or implied.
 
 import xapi from 'xapi';
 const MAX_VOLUME=0;
+const PREFER_JOIN_OBTP=true;
 
 function setVolume(vol)
 {
@@ -79,14 +80,22 @@ function limitVolume(volume)
     }
 }
 
-function companionDeviceJoin()
+function companionDeviceJoin(destination)
 {
-    xapi.Command.Bookings.List().then(result =>
-      {
-        console.log(result.Booking[0].DialInfo.Calls.Call[0].Number);
-        xapi.Command.Dial({Number: result.Booking[0].DialInfo.Calls.Call[0].Number});
-        }
-    );
+    if (PREFER_JOIN_OBTP) {
+        xapi.Command.Bookings.List().then(result =>
+          {
+            console.log(result.Booking[0].DialInfo.Calls.Call[0].Number);
+            xapi.Command.Dial({Number: result.Booking[0].DialInfo.Calls.Call[0].Number});
+            }
+        );
+    } else if (destination!='') {
+        xapi.Command.Dial({Number: destination});
+    }
+    else
+    {
+        console.log('No destination to dial received from main codec, set PREFER_JOIN_OBTP to true if you wish to just dial scheduled meeting.')
+    }
 }
 
 function companionDeviceDisconnect()
@@ -106,11 +115,27 @@ async function checkInitialVolume() {
 
 function handleMessage(event) {
   console.log(`handleMessage: ${event.Text}`);
+  var eventText=event.Text;
+  var eventSplit=eventText.split(':');
+  var parsedCommand=eventSplit[0];
+  var destination='';
+  var theProtocol='';
+  if (eventSplit.length > 1) {
+            // the destination URL likely comes with 'spark:' or 'h323'... we want to pass on to companionDeviceJoin()
+            // just the destination without the protocol, but we do want to extract the protocol in case we want to make
+            // other decisions on it.
+            if (eventSplit.length > 2) {
+              theProtocol=eventSplit[1];
+              destination=eventSplit[2];
+            } else {
+              destination=eventSplit[1];
+            }
+        }
 
-  switch(event.Text) {
+  switch(parsedCommand) {
 
     case "JoinMeeting":
-      companionDeviceJoin();
+      companionDeviceJoin(destination);
       break;
 
     case "DisconnectMeeting":
