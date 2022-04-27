@@ -15,6 +15,8 @@ or implied.
 import xapi from 'xapi';
 const MAX_VOLUME=0;
 const PREFER_JOIN_OBTP=true;
+var storedDestination='';
+const BTN_MANUAL_JOIN = 'panel_manual_board_join'
 
 function setVolume(vol)
 {
@@ -98,9 +100,37 @@ function companionDeviceJoin(destination)
     }
 }
 
+
+function companionDeviceShowJoin(destination)
+{
+    if (destination!='') {
+        storedDestination=destination;
+        // Activate panel custom join panel button
+        xapi.Command.UserInterface.Extensions.Panel.Update(
+            { PanelId: BTN_MANUAL_JOIN, Visibility: 'Auto' });
+
+    }
+    else
+    {
+        console.log('No destination to dial received from main codec, custom Join button not shown.')
+    }
+}
+
+function handlePanelButtonClicked(event) {
+        if(event.PanelId == BTN_MANUAL_JOIN){
+            if (storedDestination!='') {
+                xapi.Command.Dial({Number: storedDestination});
+            }
+        }
+}
+
 function companionDeviceDisconnect()
 {
     xapi.Command.Call.Disconnect();
+    storedDestination='';
+    // Hide custom join panel button
+    xapi.Command.UserInterface.Extensions.Panel.Update(
+            { PanelId: BTN_MANUAL_JOIN, Visibility: 'Hidden' });
 }
 
 async function checkInitialVolume() {
@@ -137,7 +167,9 @@ function handleMessage(event) {
     case "JoinMeeting":
       companionDeviceJoin(destination);
       break;
-
+    case "ShowJoinMeeting":
+      companionDeviceShowJoin(destination);
+      break;
     case "DisconnectMeeting":
       companionDeviceDisconnect();
       break;
@@ -166,6 +198,10 @@ function init() {
         limitVolume(volume);
         });
     checkInitialVolume();
+    xapi.event.on('UserInterface Extensions Panel Clicked', (event) =>
+                            handlePanelButtonClicked(event));
+    xapi.Command.UserInterface.Extensions.Panel.Update(
+            { PanelId: BTN_MANUAL_JOIN, Visibility: 'Hidden' });
 }
 
 

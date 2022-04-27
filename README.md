@@ -37,36 +37,45 @@ will tell the board to join the meeting that the triggering device is in. If you
 `COMPANION_PASSWORD`: password of account with admin priviledges on board to be able to send commands  
 `AUTOMATIC_CONNECT`: Leave true if you would like the macro to send a command to the board to join whenever a call connects on this device. 
 Set to 'false' if you want to invoke that using a custom panel button which is always an option irrespective of this setting 
-if it is properly configured in the UI extensions editor.  
+if it is properly configured in the UI extensions editor.
 
-Activate the macro.  
-
-3) Load the custom panel button included in the **ConnectBoardPanelButton.xml** file by importing it into the 
+3) Load the custom panel button included in the **ConnectBoardPanelButton_forTriggeringDevice.xml** file by importing it into the 
 triggering device codec using it's UI Extension Editor. This panel button will only show up while in a call.    
+
+4) If you wish to have the custom "Join Board" button also show on the Webex Board to join manually from there (when not in automatic mode), then load the custom panel 
+button included in the **ConnectBoardPanelButton_forBoard.xml** file by importing it into the 
+Webex Board using it's UI Extension Editor. This panel button will only show up when not in a call and only when the triggering device is in a call.  
    If you are unfamiliar with UI Extensions and how to load them from the devices 
    web interface, visit this article: https://help.webex.com/en-us/n18glho/User-Interface-Extensions-with-Room-and-Desk-Devices-and-Webex-Boards . 
    You can find more details and screenshots also in this guide: https://www.cisco.com/c/dam/en/us/td/docs/telepresence/endpoint/roomos-103/desk-room-kit-boards-customization-guide-roomos-103.pdf
  
+5) Activate the macros on both devices.   
+
 Here are instructions on how to configure local user accounts on Webex Devices, including the Webex Boards: https://help.webex.com/en-us/jkhs20/Local-User-Administration-on-Room-and-Desk-Devices  
 IMPORTANT: both the Webex device joining the meeting and the Webex Board must be on the same network so that the controlling device can reach the board via HTTP without going 
 through a firewall.  
 
-
 If you are unfamiliar with Cisco Room device macros, this is a good article to get started:
 https://help.webex.com/en-us/np8b6m6/Use-of-Macros-with-Room-and-Desk-Devices-and-Webex-Boards
 
-
-
+NOTE: If you receive errors such as "URL not allowed by rule" when running the macro on the triggering device it is likely that the host (Webex Board) is not reachable.    
+There are many tips on troubleshooting HTTP connectivity problems in Webex Devices here: https://community.cisco.com/t5/collaboration-voice-and-video/ce9-6-x-ce9-8-x-in-room-control-and-macros-usb-input-devices/ba-p/3765081
+One common issue is that the device might already have a "whitelist" of IP addresses that it can connect to. You can check for this with the following command:
+```xCommand HttpClient Allow Hostname List```  
+If it is not empty, you can clear it with this command:  
+```xCommand HttpClient Allow Hostname Clear```  
+Or you can just add the IP address of the board onto the whitelist on the triggering device following the suggestions in the article above.
 
 ## Usage
 
 Once active, the macro on the Webex Board will monitor any events that indicates it is in call and, if so, it will disable the camera and microphone (mute), lower the speaker volume to the minimum (off) and change the layout so that only the content or whiteboard being shared in the meeting is displayed.  
 It will also listen for messages from the triggering device to join a meeting either by dialing the destination sent by the triggering device, or just joining the meeting that it is 
-scheduled to join at the moment (configurable via the PREFER_JOIN_OBTP constant variable on the Board Macro)  
+scheduled to join at the moment (configurable via the PREFER_JOIN_OBTP constant variable on the Board Macro). It will also listen for messages that tell it to 
+display the custom "Connect Board" panel button when the triggering device is in a call so that users can join the board manually from the board itself.  
 
 On the triggering device side, depending on configuration as per point 2 in config section above, it will automatically send a message to the Board 
 instructing it to join the meeting via destination sent or to the scheduled meeting it is showing on the board. The user can always manually join the Board 
-while in a call on the triggering device by touching the "Connect Board" custom panel button.  
+while in a call on the triggering device by touching the "Connect Board" custom panel button on either device. 
 
 ## Additional Information
 ##### XAPI
