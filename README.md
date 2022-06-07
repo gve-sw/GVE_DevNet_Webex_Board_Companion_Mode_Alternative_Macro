@@ -1,11 +1,13 @@
-# GVE DevNet Webex Board Companion Mode Simulator Macro
-Macro to simulate companion mode for a Webex board working in conjunction with a Room Kit Plus using CVI Cloud Gateway. 
-
+# GVE DevNet Webex Board Companion Mode Alternative Macro
+Macro to emulate companion mode for a Webex Board optionally working in conjunction with another Webex Device (i.e. Room Kit Plus) in the same 
+room when wanting to join both devices to a meeting using VIMT (CVI Cloud Gateway) so that the Board joins only to show content for the meeting 
+and also be used as a whiteboard. 
 
 ## Contacts
 * Gerardo Chaves (gchaves@cisco.com)
 * Gianfranco Gonzales Vargas (giagonza@cisco.com)
 * Sandeep Bhasin (sanbhasi@cisco.com)
+* Bobby McGonigle (bomcgoni@cisco.com)
 
 ## Solution Components
 * Webex Collaboration Devices
@@ -25,6 +27,12 @@ as currently scheduled for the Board to join, edit **CompanionModeEmulator.js** 
 `const PREFER_JOIN_OBTP=false`  
 This will cause Board the use the destination sent to it by the triggering device to dial into the meeting.  
 NOTE: If the destination is not a meeting bridge but rather an individual device and you have set `PREFER_JOIN_OBTP` to `false`, that device will then receive 2 separate calls, one from the triggering device and another from the Board  
+Also change these constants if needed:  
+`LEAVE_CAMERA_ON` can be used to have the Board leave the camera on when joining a meeting. Default setting is false assuming you prefer to use the camera 
+on the main device in the room being used to join the meeting  
+`MANUAL_TOGGLE_FUNC` will automatically add a new panel button to the board so you can toggle the functionality of this macro on or off. By default, 
+it is set to *true* , but if you set it to *false* the new panel button will never be added and as long as the macro is on it will restrict the audio 
+and video of the Board for each call.  
 
 2) Load the Javascript code included in the  **TriggerCompanionJoin.js** file in this repository into a new Macro in the Macro editor of the Cisco Webex Device (i.e. Room Kit Plus using CVI Cloud Gateway). This script 
 will tell the board to join the meeting that the triggering device is in. If you have left the PREFER_JOIN_OBTP constant set to 'true' then the board will join the meeting being offered on the screen with OBTP as soon as a call is connected in this device, 
@@ -37,7 +45,11 @@ will tell the board to join the meeting that the triggering device is in. If you
 `COMPANION_PASSWORD`: password of account with admin priviledges on board to be able to send commands  
 `AUTOMATIC_CONNECT`: Leave true if you would like the macro to send a command to the board to join whenever a call connects on this device. 
 Set to 'false' if you want to invoke that using a custom panel button which is always an option irrespective of this setting 
-if it is properly configured in the UI extensions editor.
+if it is properly configured in the UI extensions editor.  
+`MANAGE_KEYPAD`: Leave it as *true* to allow the macro to replace the standard numeric keypad with a custom panel so it can capture any keypresses 
+when entering meeting IDs or PINs to be able to relay them to the Board. If you do not anticipate joining meetings using this method and 
+would prefer to have the original keypad on the device, set MANAGE_KEYPAD to *false*  
+
 
 3) Load the custom panel button included in the **ConnectBoardPanelButton_forTriggeringDevice.xml** file by importing it into the 
 triggering device codec using it's UI Extension Editor. This panel button will only show up while in a call.    
@@ -81,12 +93,6 @@ while in a call on the triggering device by touching the "Connect Board" custom 
 ##### XAPI
 
 Documentation for the XAPI can be found in the [Command References overview](https://www.cisco.com/c/en/us/support/collaboration-endpoints/telepresence-quick-set-series/products-command-reference-list.html).
-
-
-
-
-# Screenshots
-
 
 
 ### LICENSE

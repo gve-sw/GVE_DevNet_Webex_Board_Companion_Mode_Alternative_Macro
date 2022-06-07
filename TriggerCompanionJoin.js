@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2020 Cisco and/or its affiliates.
+Copyright (c) 2022 Cisco and/or its affiliates.
 This software is licensed to you under the terms of the Cisco Sample
 Code License, Version 1.1 (the "License"). You may obtain a copy of the
 License at
@@ -21,75 +21,45 @@ const AUTOMATIC_CONNECT=true; // Leave 'true' if you would like the macro to sen
                                 // connects on this device. Set to 'false' if you want to invoke that using the custom panel button
                                 // (custom panel button is always an option irrespective of this setting if it is properly configured in the UI extensions editor)
 
+const MANAGE_KEYPAD=true // Leave true to allow the macro to replace the standard numeric keypad with a custom panel
+                            // so it can capture any keypresses when entering meeting IDs or PINs to be able to relay them
+                            // to the Board. If you do not anticipate joining meetings using this method and would prefer to
+                            // have the original keypad on the device, set MANAGE_KEYPAD to false
+
+
 
 
 var callDestination = '';
 const BTN_MANUAL_JOIN = 'panel_manual_board_join'
 
-function encode(s) {
-    var c = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",
-    o = [];
-    for (var i = 0, n = s.length; i < n;) {
-      var c1 = s.charCodeAt(i++),
-      c2 = s.charCodeAt(i++),
-      c3 = s.charCodeAt(i++);
-      o.push(c.charAt(c1 >> 2));
-      o.push(c.charAt(((c1 & 3) << 4) | (c2 >> 4)));
-      o.push(c.charAt(i < n + 2 ? ((c2 & 15) << 2) | (c3 >> 6) : 64));
-      o.push(c.charAt(i < n + 1 ? c3 & 63 : 64));
-    }
-  return o.join("");
-}
 
-// To send an HTTP Post to the companion Board, a Base64 encoded string composed of "username:password" is needed when using Basic Authentication
-// This can be obtained using a tool such as https://www.base64encode.org/
-// but here we used the encode() function above to perform the encoding using the COMPANION_USERNAME and COMPANION_PASSWORD constants declared above.
-// and storing in COMPANION_USERNAMEPWD_BASE64 for use with the HTTP Post command below.
-const COMPANION_USERNAMEPWD_BASE64=encode(COMPANION_USERNAME+':'+COMPANION_PASSWORD);
-
-function sendCompanionDeviceJoin()
+function sendCompanionDevice(message)
 {
-
     let url = 'https://' + COMPANION_IP + '/putxml';
     let headers = [
       'Content-Type: text/xml',
-      'Authorization: Basic ' + COMPANION_USERNAMEPWD_BASE64
+      `Authorization: Basic ${btoa(COMPANION_USERNAME + ':' + COMPANION_PASSWORD)}`
     ];
 
-    let payload = "<XmlDoc internal='True'><Command><Message><Send><Text>"+ "JoinMeeting:"+callDestination +"</Text></Send></Message></Command></XmlDoc>";
+    let payload = "<XmlDoc internal='True'><Command><Message><Send><Text>"+ message +"</Text></Send></Message></Command></XmlDoc>";
 
     xapi.command('HttpClient Post', {Url: url, Header: headers, AllowInsecureHTTPS: 'True'}, payload)
       .then((response) => {if(response.StatusCode === "200") {console.log("Successfully sent: " + payload)}});
+}
+
+function sendCompanionDeviceJoin()
+{
+    sendCompanionDevice("JoinMeeting:"+callDestination);
 }
 
 function sendCompanionDeviceShowJoin()
 {
-
-    let url = 'https://' + COMPANION_IP + '/putxml';
-    let headers = [
-      'Content-Type: text/xml',
-      'Authorization: Basic ' + COMPANION_USERNAMEPWD_BASE64
-    ];
-
-    let payload = "<XmlDoc internal='True'><Command><Message><Send><Text>"+ "ShowJoinMeeting:"+callDestination +"</Text></Send></Message></Command></XmlDoc>";
-
-    xapi.command('HttpClient Post', {Url: url, Header: headers, AllowInsecureHTTPS: 'True'}, payload)
-      .then((response) => {if(response.StatusCode === "200") {console.log("Successfully sent: " + payload)}});
+    sendCompanionDevice("ShowJoinMeeting:"+callDestination);
 }
 
 function sendCompanionDeviceDisconnect()
 {
-
-    let url = 'https://' + COMPANION_IP + '/putxml';
-    let headers = [
-      'Content-Type: text/xml',
-      'Authorization: Basic ' + COMPANION_USERNAMEPWD_BASE64
-    ];
-
-    let payload = "<XmlDoc internal='True'><Command><Message><Send><Text>"+ "DisconnectMeeting" +"</Text></Send></Message></Command></XmlDoc>";
-
-    xapi.command('HttpClient Post', {Url: url, Header: headers, AllowInsecureHTTPS: 'True'}, payload)
-      .then((response) => {if(response.StatusCode === "200") {console.log("Successfully sent: " + payload)}});
+    sendCompanionDevice("DisconnectMeeting");
 }
 
 function handlePanelButtonClicked(event) {
@@ -136,6 +106,26 @@ function listenToCalls()
 
     });
 
+    xapi.Event.UserInterface.Extensions.Widget.Action.on(event => {
+      switch (event.Type) {
+        case 'released':
+          switch (event.WidgetId) {
+            case 'xtraBig_Keypad':
+              xapi.Command.Call.DTMFSend({ DTMFString: event.Value })
+              xapi.Command.UserInterface.Extensions.Widget.UnsetValue({ WidgetId: 'xtraBig_Keypad' })
+              console.log({ Message: `DTMF Send: ${event.Value}` })
+              sendCompanionDevice("Keypress:"+event.Value);
+              console.log(`Sent to board: Keypress:${event.Value}` )
+              break;
+            default:
+              break;
+          }
+          break;
+        default:
+          break;
+      }
+    })
+
 }
 
 // ---------------------- ERROR HANDLING
@@ -153,7 +143,21 @@ function init() {
 
 
     if (COMPANION_IP!='') {
-        listenToCalls();
+            listenToCalls();
+            if (MANAGE_KEYPAD) {
+              xapi.Config.UserInterface.Features.Call.Keypad.set('Hidden')
+              xapi.Command.UserInterface.Extensions.Panel.Save({ PanelId: 'xtraBig_Keypad' }, `<Extensions><Panel><Order>1</Order><Origin>local</Origin><Type>InCall</Type><Icon>Custom</Icon><Name>Keypad</Name><ActivityType>Custom</ActivityType><CustomIcon><Content>iVBORw0KGgoAAAANSUhEUgAAAHAAAABwCAYAAADG4PRLAAAAAXNSR0IArs4c6QAAAvdJREFUeF7tnMFt3EAMRTkt5GYjPaSFtOEU4iJcSNJGWnAPQXJLCzIW2MNikQUhQPziZ96eRyT13lAaATO7gp81gWVdPcUHAs0nAQIRaE7AvHw6EIHmBMzLpwMRaE7AvHw6EIHmBMzLpwMRmBPYtu1zRLxFxNfr6J8R8brW+pVfvX/E9Hy3RMo78ArzPSI+3an4GxFfjpY4Pd/9dFYI/B4RLw/66Mda69v+Hnt8xbZto/OdIfB3RDw9QP5nrfV8sMDR+RBoPmHOEDj6kaZ+ZJ8h8LICZRFz5HviJlb5IuaSa/qyXn1/0s+IoolH2CsBSQdCu44AAuvYSiIjUIK5LgkC69hKIiNQgrkuCQLr2EoiI1CCuS4JAuvYSiIjUIK5LgkC69hKIiNQgrkuCQLr2EoiI1CCuS4JAuvYSiIjUIK5LgkC69hKIiNQgrkuCQLr2EoiI1CCuS6JRKB608/0fLfToVzg9LMK6vu772WFQDb21j1B6//oZ9u20WcV1Pd3Rgci0LwDeYSaC+RshLPAS+3Tl/Xq+5N+RhROPkJH1K9CoVxLoPw7sLZ8oiPQfA4gEIHmBMzLpwMRaE7AvHw6EIHmBMzLpwMRaE7AvHw6EIHmBMzLpwMRaE7AvHw6EIHmBMzLpwMRaE7AvHxJB6o3/UzPJ93UpD47MD3f/QOjvAPVfwo+Pd8ZAtlaX/ieVXQgAs0FcjbCXCBnI5wFXmqfvqxX35/0M6Jw8hGasxH+c6B8FeqPqPcdILC3n7Q6BKaIeg9AYG8/aXUITBH1HoDA3n7S6hCYIuo9AIG9/aTVITBF1HsAAnv7SatDYIqo9wAE9vaTVofAFFHvAQjs7SetDoEpot4DENjbT1odAlNEvQcgsLeftLqRAs/cZJQSP3jAOIHqsxEH+9gdbqJA6Ubi3cQPvmCiQOlW/oN97A6HwN3Iel0wUSCP0F5zbF81LGL28Wo5ms+Illoo6l8Exr0D/zfNCDQ3jkAEmhMwL58ORKA5AfPy6UBzgR/JbriA4q1GzQAAAABJRU5ErkJggg==</Content><Id>dc52228499a2c14f6b0290602260a4e3e85c7a81de3a46566d136bca517f6aab</Id></CustomIcon><Page><Name>Keypad</Name><Row><Name>Row</Name><Widget><WidgetId>xtraBig_Keypad</WidgetId><Type>GroupButton</Type><Options>size=4;columns=3</Options><ValueSpace><Value><Key>1</Key><Name>1</Name></Value><Value><Key>2</Key><Name>2</Name></Value><Value><Key>3</Key><Name>3</Name></Value><Value><Key>4</Key><Name>4</Name></Value><Value><Key>5</Key><Name>5</Name></Value><Value><Key>6</Key><Name>6</Name></Value><Value><Key>7</Key><Name>7</Name></Value><Value><Key>8</Key><Name>8</Name></Value><Value><Key>9</Key><Name>9</Name></Value><Value><Key>#</Key><Name>#</Name></Value><Value><Key>0</Key><Name>0</Name></Value><Value><Key>*</Key><Name>✱</Name></Value></ValueSpace></Widget></Row><Options>hideRowNames=1</Options></Page></Panel></Extensions> `)
+              console.info({ Message: 'Extra Big Keypad Installed and the Native Call Keypad was set to Hidden' })
+
+              xapi.Event.Macros.Macro.Deactivated.on(event => {
+                  if (event.Name == module.name.replace('./', '')) {
+                    xapi.Config.UserInterface.Features.Call.Keypad.set('Auto')
+                    xapi.Command.UserInterface.Extensions.Panel.Remove({ PanelId: 'xtraBig_Keypad' })
+                    console.info({ Message: 'Extra Big Keypad Uninstalled and the Native Call Keypad was set to Auto' })
+                  }
+                });
+
+            }
         }
 }
 

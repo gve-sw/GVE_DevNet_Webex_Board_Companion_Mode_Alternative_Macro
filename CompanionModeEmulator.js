@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2020 Cisco and/or its affiliates.
+Copyright (c) 2022 Cisco and/or its affiliates.
 This software is licensed to you under the terms of the Cisco Sample
 Code License, Version 1.1 (the "License"). You may obtain a copy of the
 License at
@@ -12,11 +12,54 @@ IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
 or implied.
 */
 
+
 import xapi from 'xapi';
+
+// Please configure the following constant variables
 const MAX_VOLUME=0;
 const PREFER_JOIN_OBTP=true;
+const LEAVE_CAMERA_ON=false;
+const MANUAL_TOGGLE_FUNC=true;
+
+
+
 var storedDestination='';
+var storedPostDialKeys='';
 const BTN_MANUAL_JOIN = 'panel_manual_board_join'
+const BTN_TOGGLE= 'panel_manual_toggle'
+var inCompanionMode=true;
+var originalVolume=0;
+var inCall=false;
+
+function installOffButton() {
+xapi.Command.UserInterface.Extensions.Panel.Save({ PanelId: 'panel_manual_toggle' },
+    `<Extensions><Version>1.8</Version>
+  <Panel>
+    <Order>2</Order>
+    <PanelId>panel_manual_toggle</PanelId>
+    <Type>Home</Type>
+    <Icon>Tv</Icon>
+    <Color>#D43B52</Color>
+    <Name>Turn Off Companion</Name>
+    <ActivityType>Custom</ActivityType>
+  </Panel>
+</Extensions>`);
+}
+
+function installOnButton() {
+xapi.Command.UserInterface.Extensions.Panel.Save({ PanelId: 'panel_manual_toggle' },
+    `<Extensions><Version>1.8</Version>
+  <Panel>
+    <Order>2</Order>
+    <PanelId>panel_manual_toggle</PanelId>
+    <Type>Home</Type>
+    <Icon>Tv</Icon>
+    <Color>#1D805F</Color>
+    <Name>Turn On Companion</Name>
+    <ActivityType>Custom</ActivityType>
+  </Panel>
+</Extensions>`);
+}
 
 function setVolume(vol)
 {
@@ -34,20 +77,35 @@ function alert2(title, text = '', duration = 5)
 function listenToCalls()
 {
     xapi.Event.CallSuccessful.on(async () => {
-        const call = await xapi.Status.Call.get();
-        if (call.length < 1) {
+        if (inCompanionMode) {
+            const call = await xapi.Status.Call.get();
+            if (call.length < 1) {
+                setMute(true);
+            }
+
+            console.log(call[0].CallbackNumber);
             setMute(true);
+            if (!LEAVE_CAMERA_ON) {
+                xapi.Command.Video.Input.MainVideo.Mute();
+                }
+            xapi.Command.Video.Layout.LayoutFamily.Set({ CustomLayoutName: 'value', LayoutFamily: 'overlay', Target: 'Local'});
+            xapi.Command.Video.Selfview.Set({ Mode: 'off'});
+            xapi.Command.Video.PresentationPIP.Set({ Position: 'UpperRight'});
+            xapi.Command.Video.PresentationView.Set({ View: 'Maximized'});
+            inCall=true;
+            if (storedPostDialKeys!='')
+            {
+                xapi.Command.Call.DTMFSend({ DTMFString: storedPostDialKeys });
+                storedPostDialKeys='';
+            }
         }
-        
-        console.log(call[0].CallbackNumber);
-        setMute(true);
-        xapi.Command.Video.Input.MainVideo.Mute();
-        xapi.Command.Video.Layout.LayoutFamily.Set({ CustomLayoutName: 'value', LayoutFamily: 'overlay', Target: 'Local'});
-        xapi.Command.Video.Selfview.Set({ Mode: 'off'});
-        xapi.Command.Video.PresentationPIP.Set({ Position: 'UpperRight'});
-        xapi.Command.Video.PresentationView.Set({ View: 'Maximized'});
     });
-    xapi.Event.CallDisconnect.on(() => setMute(true));
+    xapi.Event.CallDisconnect.on(() => {
+        if (inCompanionMode) {
+            setMute(true);
+            inCall=false;
+        }
+    });
 }
 
 function alert(title, text, duration = 5)
@@ -73,13 +131,15 @@ function setMute(mute)
 
 function limitVolume(volume)
 {
- if (volume > MAX_VOLUME) {
-    setVolume(MAX_VOLUME);
-    alert(
-        'Volume restricted',
-        'Max volume on this video system is restricted by a script',
-        );
-    }
+    if (inCompanionMode) {
+     if (volume > MAX_VOLUME) {
+        setVolume(MAX_VOLUME);
+        alert(
+            'Volume restricted',
+            'Max volume on this video system is restricted by a script',
+            );
+        }
+     }
 }
 
 function companionDeviceJoin(destination)
@@ -116,10 +176,41 @@ function companionDeviceShowJoin(destination)
     }
 }
 
+function processTriggeringKeypress(destination)
+{
+    if (inCall)
+    {
+        xapi.Command.Call.DTMFSend({ DTMFString: destination });
+    }
+    else
+    {
+        storedPostDialKeys+=destination;
+    }
+}
+
 function handlePanelButtonClicked(event) {
         if(event.PanelId == BTN_MANUAL_JOIN){
             if (storedDestination!='') {
                 xapi.Command.Dial({Number: storedDestination});
+            }
+        }
+        if(event.PanelId == BTN_TOGGLE) {
+            console.log('BTN_TOGGLE pressed');
+            if (inCompanionMode){
+                console.log("In companion mode, toggling...")
+                inCompanionMode=false;
+                installOnButton();
+                setVolume(originalVolume);
+            }
+            else {
+                console.log("In regular mode, turning on companion...")
+                storeOriginalVolume();
+                checkInitialVolume();
+
+                inCompanionMode=true;
+                 if (MANUAL_TOGGLE_FUNC) {
+                        installOffButton();
+                    }
             }
         }
 }
@@ -132,6 +223,16 @@ function companionDeviceDisconnect()
     xapi.Command.UserInterface.Extensions.Panel.Update(
             { PanelId: BTN_MANUAL_JOIN, Visibility: 'Hidden' });
 }
+
+async function storeOriginalVolume() {
+        try {
+            originalVolume = await xapi.Status.Audio.Volume.get();
+        }
+        catch (error) {
+            console.error(error);
+        }
+}
+
 
 async function checkInitialVolume() {
         try {
@@ -173,6 +274,8 @@ function handleMessage(event) {
     case "DisconnectMeeting":
       companionDeviceDisconnect();
       break;
+    case "Keypress":
+      processTriggeringKeypress(destination);
   }
 }
 
@@ -192,16 +295,23 @@ function init() {
     // register callback for processing messages from main codec
     xapi.event.on('Message Send', handleMessage);
 
+    storeOriginalVolume();
     listenToCalls();
     xapi.Status.Audio.Volume.on((volume) => {
-        console.log('Volume changed to: ${volume}');
+        //console.log('Volume changed to: ${volume}');
         limitVolume(volume);
         });
     checkInitialVolume();
+    if (MANUAL_TOGGLE_FUNC) {
+        installOffButton();
+    }
     xapi.event.on('UserInterface Extensions Panel Clicked', (event) =>
                             handlePanelButtonClicked(event));
     xapi.Command.UserInterface.Extensions.Panel.Update(
             { PanelId: BTN_MANUAL_JOIN, Visibility: 'Hidden' });
+
+
+
 }
 
 
