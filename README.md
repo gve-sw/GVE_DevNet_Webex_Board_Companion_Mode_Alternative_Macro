@@ -49,6 +49,13 @@ if it is properly configured in the UI extensions editor.
 `MANAGE_KEYPAD`: Leave it as *true* to allow the macro to replace the standard numeric keypad with a custom panel so it can capture any keypresses 
 when entering meeting IDs or PINs to be able to relay them to the Board. If you do not anticipate joining meetings using this method and 
 would prefer to have the original keypad on the device, set MANAGE_KEYPAD to *false*  
+`AUTOKEYPADURIS`: This constant array contains objects that determine if the macro should automatically show the custom keypad panel (if enabled by MANAGE_KEYPAD ) 
+for certain domains that require further input for to enter a meeting ID and, optionally, a passkey. You can always invoke the custom keypad manually 
+even if your target system is not covered in that array. Each object of the array contains a value with key "suffix:" which is the domain name of the URI you dial to join 
+the conferencing system and a value with key "numSkip:" which is a boolean (true or false) that specifies if it should skip showing the custom 
+keypad if the entire URI is prefixed by a numeric meeting ID (i.e. 1234567890.bbxo@m.webex.com or 1234567890@m.webex.com) in which case that conferencing 
+system does not require further input to connect to the meeting.  
+
 
 
 3) Load the custom panel button included in the **ConnectBoardPanelButton_forTriggeringDevice.xml** file by importing it into the 

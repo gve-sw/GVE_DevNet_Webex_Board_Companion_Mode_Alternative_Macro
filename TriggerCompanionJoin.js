@@ -26,7 +26,16 @@ const MANAGE_KEYPAD=true // Leave true to allow the macro to replace the standar
                             // to the Board. If you do not anticipate joining meetings using this method and would prefer to
                             // have the original keypad on the device, set MANAGE_KEYPAD to false
 
-
+// edit AUTOKEYPADURIS below if you need to add more conferencing systems for which you would like the customer keypad
+// controlled by the MANAGE_KEYPAD constant to appear automatically to prompt for a meeting ID and, optionally, a passkey
+// You can always invoke the custom keypad manually even if your target system is not covered here.
+// the suffix: value is the domain name of the URI you dial to join the conferencing system
+// the numSkip: value is a boolean (true or false) that specifies if it should skip showing the custom keypad if the entire URI
+// is prefixed by a numeric meeting ID (i.e. 1234567890.bbxo@m.webex.com or 1234567890@m.webex.com)
+const AUTOKEYPADURIS = [
+    {suffix:'m.webex.com', numSkip: true},
+    {suffix:'bjn.vc', numSkip: false}
+]
 
 
 var callDestination = '';
@@ -68,6 +77,37 @@ function handlePanelButtonClicked(event) {
         }
 }
 
+
+function popKeyPad(destination) {
+    let result=false;
+    let justURI=destination.substring(destination.lastIndexOf(":") +1);
+    console.log(justURI)
+    let domain=justURI.substring(justURI.lastIndexOf("@") +1);
+    let address=justURI.substring(0, justURI.lastIndexOf("@"));
+    for (const checkURI of AUTOKEYPADURIS) {
+        if (checkURI.suffix==domain) {
+            if (checkURI.numSkip) {
+                let dotIndex=address.lastIndexOf(".");
+                let front=''
+                if (dotIndex>0) {
+                    front=address.substring(0,dotIndex);
+                }
+                else {
+                    front=address;
+                }
+                if (/^[0-9]+$/.test(front)==false){
+                    result=true;
+                }
+            }
+            else {
+                   result=true;
+            }
+            break;
+        }
+    }
+   return result;
+}
+
 function listenToCalls()
 {
     xapi.event.on('UserInterface Extensions Panel Clicked', (event) =>
@@ -85,6 +125,11 @@ function listenToCalls()
         var theDestination=call[0].CallbackNumber;
         console.log("Connected call to/from: ", theDestination);
         console.log("Destination captured upon outbound event: ", callDestination)
+        if (MANAGE_KEYPAD) {
+            if (popKeyPad(callDestination)) {
+                xapi.Command.UserInterface.Extensions.Panel.Open({ PanelId: 'xtraBig_Keypad' });
+            }
+        }
         // only connect automatically if flag set
         if (AUTOMATIC_CONNECT) {
             console.log("Auto-connect enabled, send command to board...")
@@ -140,7 +185,6 @@ function init() {
     xapi.config.set('HttpClient AllowInsecureHTTPS:', 'True').catch(handleError);
     xapi.config.set('HttpClient AllowHTTP:', 'True').catch(handleError);
         // register handler for Widget actions
-
 
     if (COMPANION_IP!='') {
             listenToCalls();
