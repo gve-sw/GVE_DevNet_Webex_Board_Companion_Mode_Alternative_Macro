@@ -50,7 +50,7 @@ function sendCompanionDevice(message)
       `Authorization: Basic ${btoa(COMPANION_USERNAME + ':' + COMPANION_PASSWORD)}`
     ];
 
-    let payload = "<XmlDoc internal='True'><Command><Message><Send><Text>"+ message +"</Text></Send></Message></Command></XmlDoc>";
+    let payload = "<Command><Message><Send><Text>"+ message +"</Text></Send></Message></Command>";
 
     xapi.command('HttpClient Post', {Url: url, Header: headers, AllowInsecureHTTPS: 'True'}, payload)
       .then((response) => {if(response.StatusCode === "200") {console.log("Successfully sent: " + payload)}});
