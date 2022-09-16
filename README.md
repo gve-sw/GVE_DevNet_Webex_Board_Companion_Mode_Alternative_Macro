@@ -1,7 +1,8 @@
 # GVE DevNet Webex Board Companion Mode Alternative Macro
 Macro to emulate companion mode for a Webex Board optionally working in conjunction with another Webex Device (i.e. Room Kit Plus) in the same 
 room when wanting to join both devices to a meeting using VIMT (CVI Cloud Gateway) so that the Board joins only to show content for the meeting 
-and also be used as a whiteboard. 
+and also be used as a whiteboard. This Macro also emulates companion mode on the Webex Board Pro series devices where the official "Companion Mode" 
+feature is not supported as you can see in this [Webex Help Center article](https://help.webex.com/en-us/article/fd1jm/Companion-mode-for-Board-and-Room-Series-devices). 
 
 ## Contacts
 * Gerardo Chaves (gchaves@cisco.com)
@@ -55,7 +56,10 @@ even if your target system is not covered in that array. Each object of the arra
 the conferencing system and a value with key "numSkip:" which is a boolean (true or false) that specifies if it should skip showing the custom 
 keypad if the entire URI is prefixed by a numeric meeting ID (i.e. 1234567890.bbxo@m.webex.com or 1234567890@m.webex.com) in which case that conferencing 
 system does not require further input to connect to the meeting.  
-
+`DIMISS_BIG_PAD_TIME`: This is the amount of time in milliseconds that will take the custom panel keypad to automatically be dismissed 
+after the last key has been pressed on it. The default is set to 30000 or 30 seconds  
+`DISMISS_BIG_PAD_ON_POUND`: If this value is set to true, the custom panel keypad will automatically be dismissed when you press the '#' key. 
+The default value is set to true   
 
 
 3) Load the custom panel button included in the **ConnectBoardPanelButton_forTriggeringDevice.xml** file by importing it into the 

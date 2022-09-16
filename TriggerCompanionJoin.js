@@ -37,10 +37,15 @@ const AUTOKEYPADURIS = [
     {suffix:'bjn.vc', numSkip: false}
 ]
 
+const DIMISS_BIG_PAD_TIME=30000; //30 seconds
+
+const DISMISS_BIG_PAD_ON_POUND=true;
+
 
 var callDestination = '';
 const BTN_MANUAL_JOIN = 'panel_manual_board_join'
 
+let DismissBigPadTimer = null;
 
 function sendCompanionDevice(message)
 {
@@ -161,6 +166,12 @@ function listenToCalls()
               console.log({ Message: `DTMF Send: ${event.Value}` })
               sendCompanionDevice("Keypress:"+event.Value);
               console.log(`Sent to board: Keypress:${event.Value}` )
+              if (DISMISS_BIG_PAD_ON_POUND && event.Value=='#') {
+                xapi.Command.UserInterface.Extensions.Panel.Close();
+              }
+              else {
+                restartDismissBigPadTimer();
+              }
               break;
             default:
               break;
@@ -172,6 +183,31 @@ function listenToCalls()
     })
 
 }
+
+
+
+function startDismissBigPadTimer() {
+    if (DismissBigPadTimer == null) {
+      DismissBigPadTimer = setTimeout(onDismissBigPadTimerExpired, DIMISS_BIG_PAD_TIME);
+    }
+  }
+  
+  function stopDismissBigPadTimer() {
+    if (DismissBigPadTimer != null) {
+      clearTimeout(DismissBigPadTimer);
+      DismissBigPadTimer = null;
+    }
+  }
+  
+  function restartDismissBigPadTimer() {
+    stopDismissBigPadTimer();
+    startDismissBigPadTimer();
+  }
+  
+  function onDismissBigPadTimerExpired() {
+    console.log('onDismissBigPadTimerExpired');
+    xapi.Command.UserInterface.Extensions.Panel.Close();
+  }
 
 // ---------------------- ERROR HANDLING
 
