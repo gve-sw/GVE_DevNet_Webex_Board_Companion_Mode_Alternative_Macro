@@ -152,7 +152,13 @@ function companionDeviceJoin(destination)
             }
         );
     } else if (destination!='') {
-        xapi.Command.Dial({Number: destination});
+        var destSplit=destination.split(':')
+        if (destSplit.length==1)
+            xapi.Command.Dial({Number: destination});
+        else if (destSplit[0]=='wbxmn')
+            xapi.Command.Webex.Join({  Number: destSplit[1] });
+        else 
+            console.log('Not a valid destination: ',destination)
     }
     else
     {
@@ -191,7 +197,13 @@ function processTriggeringKeypress(destination)
 function handlePanelButtonClicked(event) {
         if(event.PanelId == BTN_MANUAL_JOIN){
             if (storedDestination!='') {
-                xapi.Command.Dial({Number: storedDestination});
+                var destSplit=storedDestination.split(':')
+                if (destSplit.length==1)
+                    xapi.Command.Dial({Number: storedDestination});
+                else if (destSplit[0]=='wbxmn')
+                    xapi.Command.Webex.Join({  Number: destSplit[1] });
+                else 
+                    console.log('Not a valid destination: ',storedDestination)
             }
         }
         if(event.PanelId == BTN_TOGGLE) {
@@ -255,10 +267,18 @@ function handleMessage(event) {
             // the destination URL likely comes with 'spark:' or 'h323'... we want to pass on to companionDeviceJoin()
             // just the destination without the protocol, but we do want to extract the protocol in case we want to make
             // other decisions on it.
-            if (eventSplit.length > 2) {
+            if (eventSplit.length == 3) {
               theProtocol=eventSplit[1];
               destination=eventSplit[2];
-            } else {
+            } else if (eventSplit.length == 4)
+            {
+                theProtocol=eventSplit[1];
+                // this is to handle when we get instruction to join
+                // a webex meeting with the meeting ID as destination
+                destination=eventSplit[2]+':'+eventSplit[3];
+            }
+            else
+            {
               destination=eventSplit[1];
             }
         }
