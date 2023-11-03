@@ -17,8 +17,8 @@ import xapi from 'xapi';
 
 // Please configure the following constant variables
 const MAX_VOLUME = 0;
-const PREFER_JOIN_OBTP = false;
-const LEAVE_CAMERA_ON = true;
+const PREFER_JOIN_OBTP = true;
+const LEAVE_CAMERA_ON = false;
 const MANUAL_TOGGLE_FUNC = true;
 
 
