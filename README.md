@@ -41,9 +41,11 @@ will tell the board to join the meeting that the triggering device is in. If you
    It will also tell the board to disconnect from the call when the Room Kit Plus disconnects from the meeting/call.  
    Before activating the macro, set the following constants in the code on your device:  
    
-`COMPANION_IP`: IP address or hostname of associated board to send join/disconnect commands to  
+`COMPANION_IP`: IP address or hostname of associated board to send join/disconnect commands to
+`COMPANION_ADDRESS`: Webex address of user associated with board to send join/disconnect commands to on *instant meeting*
 `COMPANION_USERNAME`: username of account with admin priviledges on board to be able to send commands  
 `COMPANION_PASSWORD`: password of account with admin priviledges on board to be able to send commands  
+`INSTANT_MEETING_JOIN_COMMAND_SEND_DELAY`: estimated delay value in *milliseconds* that needs to be waited for background applicaton to process,i.e before sending information to companion device
 `AUTOMATIC_CONNECT`: Leave true if you would like the macro to send a command to the board to join whenever a call connects on this device. 
 Set to 'false' if you want to invoke that using a custom panel button which is always an option irrespective of this setting 
 if it is properly configured in the UI extensions editor.  

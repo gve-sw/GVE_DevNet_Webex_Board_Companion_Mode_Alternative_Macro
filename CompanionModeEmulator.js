@@ -23,6 +23,7 @@ const MANUAL_TOGGLE_FUNC = true;
 
 
 
+
 var storedDestination = '';
 var storedPostDialKeys = '';
 const BTN_MANUAL_JOIN = 'panel_manual_board_join'
@@ -135,6 +136,7 @@ function limitVolume(volume) {
 }
 
 function companionDeviceJoin(destination) {
+    console.log(`in companionDeviceJoin with destination ${destination}`)
     if (PREFER_JOIN_OBTP) {
         xapi.Command.Bookings.List().then(result => {
             console.log(result.Booking[0].DialInfo.Calls.Call[0].Number);
@@ -143,10 +145,17 @@ function companionDeviceJoin(destination) {
         );
     } else if (destination != '') {
         var destSplit = destination.split(':')
-        if (destSplit.length == 1)
+        console.log(destSplit)
+        if (destSplit.length == 1) {
             xapi.Command.Dial({ Number: destination });
+        }
         else if (destSplit[0] == 'wbxmn')
             xapi.Command.Webex.Join({ Number: destSplit[1] });
+        else if (destSplit[0] == 'instant-meeting|https') {
+            const dialURL = 'https:' + destSplit[1];
+            console.log(`about to just dial into the URL: ${dialURL}`)
+            xapi.Command.Webex.Join({ Number: dialURL });
+        }
         else
             console.log('Not a valid destination: ', destination)
     }
@@ -157,7 +166,7 @@ function companionDeviceJoin(destination) {
 
 
 function companionDeviceShowJoin(destination) {
-    if (destination != '') {
+    if (destination != '' && destination != 'spark:instant-meeting') {
         storedDestination = destination;
         // Activate panel custom join panel button
         xapi.Command.UserInterface.Extensions.Panel.Update(
@@ -165,7 +174,11 @@ function companionDeviceShowJoin(destination) {
 
     }
     else {
-        console.log('No destination to dial received from main codec, custom Join button not shown.')
+        if (destination == '')
+            console.log('No destination to dial received from main codec, custom Join button not shown.')
+        else
+            console.log('Instant meeting destination received from main codec, just let the regular Join button show automatically.')
+
     }
 }
 
