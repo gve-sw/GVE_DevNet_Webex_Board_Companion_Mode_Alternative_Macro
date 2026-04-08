@@ -236,7 +236,7 @@ function init() {
       console.info({ Message: 'Extra Big Keypad Installed and the Native Call Keypad was set to Hidden' })
 
       xapi.Event.Macros.Macro.Deactivated.on(event => {
-        if (event.Name == module.name.replace('./', '')) {
+        if (event.Name == _main_macro_name()) {
           xapi.Config.UserInterface.Features.Call.Keypad.set('Auto')
           xapi.Command.UserInterface.Extensions.Panel.Remove({ PanelId: 'xtraBig_Keypad' })
           console.info({ Message: 'Extra Big Keypad Uninstalled and the Native Call Keypad was set to Auto' })
